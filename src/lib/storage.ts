@@ -1,37 +1,41 @@
-// src/lib/storage.js - FIXED: Static imports only. No import() allowed in SW.
 import { StorageKeys, DefaultSettings, SchemaVersion, normalizeSettings, validateSettingsPatch } from "./session-model.js";
+import type { Session, Settings, SettingsPatch } from "./types.js";
 
 // Serialize all read-modify-write storage mutations so concurrent saves
 // (keyboard command + manual save, autosave + manual save) cannot interleave
 // and overwrite each other. chrome.storage.local has no transactions.
 let writeQueue = Promise.resolve();
-function serializedWrite(fn) {
+function serializedWrite<T>(fn: () => Promise<T>): Promise<T> {
   const next = writeQueue.then(fn);
-  writeQueue = next.catch((e) => {
-    console.error("[EdgeSessions] Serialized storage mutation failed", e);
-  }); // keep the chain alive even if a mutation fails
+  writeQueue = next.then(
+    () => undefined,
+    (error: unknown) => {
+      console.error("[EdgeSessions] Serialized storage mutation failed", error);
+      return undefined;
+    },
+  ); // keep the chain alive even if a mutation fails
   return next;
 }
 
-export async function getSessions() {
+export async function getSessions(): Promise<Session[]> {
   const data = await chrome.storage.local.get(StorageKeys.SESSIONS);
-  const sessions = data[StorageKeys.SESSIONS] || [];
+  const sessions = (data[StorageKeys.SESSIONS] ?? []) as Session[];
   // Schema guard: drop sessions written by an unsupported schema version so a
   // future migration path can be added here without crashing on read.
   // Backward-compat: legacy sessions without `source` default to "user".
   return sessions.filter((s) => s && s.version === SchemaVersion).map((s) => ({ ...s, source: s.source ?? "user" }));
 }
 
-export async function saveSessionsList(sessions) {
+export async function saveSessionsList(sessions: Session[]): Promise<void> {
   await chrome.storage.local.set({ [StorageKeys.SESSIONS]: sessions });
 }
 
-export async function getSettings() {
+export async function getSettings(): Promise<Settings> {
   const data = await chrome.storage.local.get(StorageKeys.SETTINGS);
-  return normalizeSettings(data[StorageKeys.SETTINGS] || DefaultSettings);
+  return normalizeSettings((data[StorageKeys.SETTINGS] ?? DefaultSettings) as SettingsPatch);
 }
 
-export async function updateSettings(patch) {
+export async function updateSettings(patch: SettingsPatch): Promise<Settings> {
   const current = await getSettings();
   const validation = validateSettingsPatch({ ...current, ...patch });
   if (!validation.valid) {
@@ -42,7 +46,7 @@ export async function updateSettings(patch) {
   return next;
 }
 
-export async function addSession(session, maxUserSessions = 50, maxAutoSessions = 30) {
+export async function addSession(session: Session, maxUserSessions = 50, maxAutoSessions = 30): Promise<Session[]> {
   return serializedWrite(async () => {
     const sessions = await getSessions();
     sessions.unshift(session);
@@ -58,7 +62,7 @@ export async function addSession(session, maxUserSessions = 50, maxAutoSessions 
   });
 }
 
-export async function deleteSession(id) {
+export async function deleteSession(id: string): Promise<Session[]> {
   return serializedWrite(async () => {
     const sessions = await getSessions();
     const next = sessions.filter((s) => s.id !== id);
@@ -67,17 +71,17 @@ export async function deleteSession(id) {
   });
 }
 
-export async function getSessionById(id) {
+export async function getSessionById(id: string): Promise<Session | null> {
   const sessions = await getSessions();
   return sessions.find((s) => s.id === id) || null;
 }
 
-export async function getAutosave() {
+export async function getAutosave(): Promise<Session | null> {
   const data = await chrome.storage.local.get(StorageKeys.AUTOSAVE);
-  return data[StorageKeys.AUTOSAVE] || null;
+  return (data[StorageKeys.AUTOSAVE] as Session | undefined) ?? null;
 }
 
-export async function renameSession(id, newName) {
+export async function renameSession(id: string, newName: string): Promise<Session | null> {
   return serializedWrite(async () => {
     const sessions = await getSessions();
     const idx = sessions.findIndex((s) => s.id === id);
@@ -89,7 +93,7 @@ export async function renameSession(id, newName) {
   });
 }
 
-export async function ensureQuota() {
+export async function ensureQuota(): Promise<boolean> {
   try {
     const bytes = await chrome.storage.local.getBytesInUse();
     if (bytes > 85 * 100 * 1000) {

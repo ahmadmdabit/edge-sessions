@@ -1,4 +1,5 @@
-// src/pages/placeholder.js - v2: Loads rich meta from chrome.storage.local
+import type { Session, SavedTab } from "../lib/types.js";
+
 (async function () {
   const params = new URLSearchParams(location.search);
   const sessionId = params.get("sessionId");
@@ -15,20 +16,20 @@
   try {
     if (sessionId && tabKey && chrome.storage) {
       const data = await chrome.storage.local.get("SessionsV1");
-      const sessions = data.SessionsV1 || [];
+      const sessions = (data.SessionsV1 ?? []) as Session[];
       const session = sessions.find((s) => s.id === sessionId);
       if (session) {
-        savedAt = session.createdAt;
+        savedAt = String(session.createdAt);
         // Find tab by tabKey across all windows
         for (const win of session.windows) {
-          const found = win.tabs.find((t) => t.tabKey === tabKey);
+          const found = win.tabs.find((t: SavedTab) => t.tabKey === tabKey);
           if (found) {
             realUrl = found.url;
             realTitle = found.title;
             meta = found.meta || null;
             savedFavIconUrl = found.favIconUrl || "";
             if (found.groupKey) {
-              const g = session.groups.find((gr) => gr.key === found.groupKey);
+              const g = session.groups.find((gr: Session["groups"][number]) => gr.key === found.groupKey);
               if (g) groupTitle = g.title;
             }
             break;
@@ -45,16 +46,24 @@
   }
 
   // 2. Render
-  const titleEl = document.getElementById("title");
-  const urlEl = document.getElementById("url");
-  const domainEl = document.getElementById("domain");
-  const descEl = document.getElementById("description");
-  const groupEl = document.getElementById("groupInfo");
-  const favImg = document.getElementById("faviconImg");
-  const favFallback = document.getElementById("faviconFallback");
-  const ogWrap = document.getElementById("ogImageWrap");
-  const ogImg = document.getElementById("ogImage");
-  const savedAtEl = document.getElementById("savedAt");
+  const required = <T extends Element = HTMLElement>(id: string): T => {
+    const element = document.getElementById(id);
+    if (!element) throw new Error(`Missing required element: #${id}`);
+    return element as unknown as T;
+  };
+  const titleEl = required("title");
+  const urlEl = required("url");
+  const domainEl = required("domain");
+  const descEl = required("description");
+  const groupEl = required("groupInfo");
+  const favImg = required<HTMLImageElement>("faviconImg");
+  const favFallback = required("faviconFallback");
+  const ogWrap = required("ogImageWrap");
+  const ogImg = required<HTMLImageElement>("ogImage");
+  const savedAtEl = required("savedAt");
+  const loadBtn = required<HTMLButtonElement>("loadBtn");
+  const openInNewTabBtn = required<HTMLButtonElement>("openInNewTabBtn");
+  const copyUrlBtn = required<HTMLButtonElement>("copyUrlBtn");
 
   document.title = `💤 ${realTitle}`;
   titleEl.textContent = realTitle;
@@ -91,7 +100,7 @@
       }
     })();
 
-  function showFavicon(src) {
+  function showFavicon(src: string) {
     favImg.src = src;
     favImg.onload = () => {
       favImg.style.display = "block";
@@ -128,7 +137,8 @@
 
   // Theme color accent
   if (meta?.themeColor) {
-    document.querySelector(".placeholder-card").style.borderTop = `4px solid ${meta.themeColor}`;
+    const card = document.querySelector<HTMLElement>(".placeholder-card");
+    if (card) card.style.borderTop = `4px solid ${meta.themeColor}`;
   }
 
   if (savedAt) {
@@ -141,18 +151,18 @@
   function loadRealPage() {
     if (hasNavigated || !realUrl) return;
     hasNavigated = true;
-    document.getElementById("loadBtn").textContent = "Loading...";
+    loadBtn.textContent = "Loading...";
     location.replace(realUrl);
   }
 
-  document.getElementById("loadBtn").addEventListener("click", loadRealPage);
-  document.getElementById("openInNewTabBtn").addEventListener("click", () => {
+  loadBtn.addEventListener("click", loadRealPage);
+  openInNewTabBtn.addEventListener("click", () => {
     window.open(realUrl, "_blank");
   });
-  document.getElementById("copyUrlBtn").addEventListener("click", async () => {
+  copyUrlBtn.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(realUrl);
-      document.getElementById("copyUrlBtn").textContent = "Copied!";
+      copyUrlBtn.textContent = "Copied!";
     } catch (e) {
       console.warn("[EdgeSessions] Failed to copy placeholder URL to clipboard", { error: e });
     }

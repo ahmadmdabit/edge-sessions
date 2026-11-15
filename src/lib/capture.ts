@@ -1,18 +1,36 @@
-// src/lib/capture.js - v2 with Meta Extraction
+import type { SavedTabMeta, Session, SessionSource } from "./types.js";
+
+interface PageMeta {
+  description: string;
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+  themeColor: string;
+  h1: string;
+}
+
 const DEBUG = false;
-function debug(...args) {
+function debug(...args: unknown[]) {
   if (DEBUG) console.log(...args);
 }
 
 // Run scripting on a tab with a hard timeout so one unresponsive tab
 // (chrome://, edge://, PDF, blocked page) cannot stall the whole capture.
-async function executeScriptWithTimeout(target, func, timeoutMs = 3000) {
-  let timerId;
-  const timeout = new Promise((resolve) => {
+interface ScriptResult<T> { result?: T }
+
+async function executeScriptWithTimeout<T>(
+  target: { tabId: number },
+  func: () => T,
+  timeoutMs = 3000,
+): Promise<ScriptResult<T>[] | undefined> {
+  let timerId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<undefined>((resolve) => {
     timerId = setTimeout(() => resolve(undefined), timeoutMs);
   });
-  const script = chrome.scripting.executeScript({ target, func }).catch((e) => {
-    console.warn("[EdgeSessions] executeScript failed", { target, error: e });
+  const script = chrome.scripting.executeScript({ target, func }).then((results) =>
+    results as ScriptResult<T>[],
+  ).catch((error: unknown) => {
+    console.warn("[EdgeSessions] executeScript failed", { target, error });
     return undefined;
   });
 
@@ -22,7 +40,7 @@ async function executeScriptWithTimeout(target, func, timeoutMs = 3000) {
     // an unhandled timer rejection behind.
     return await Promise.race([script, timeout]);
   } finally {
-    clearTimeout(timerId);
+    if (timerId !== undefined) clearTimeout(timerId);
   }
 }
 
@@ -31,17 +49,17 @@ import { getSessions, saveSessionsList, getSessionById } from "./storage.js";
 
 // This function runs IN the page to extract meta. Must be self-contained, no imports.
 // Separate lookups for name= and property=
-function extractPageMeta() {
+function extractPageMeta(): PageMeta {
   try {
-    const byName = (name) => document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") || "";
-    const byProp = (prop) => document.querySelector(`meta[property="${prop}"]`)?.getAttribute("content") || "";
+    const byName = (name: string) => document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") || "";
+    const byProp = (prop: string) => document.querySelector(`meta[property="${prop}"]`)?.getAttribute("content") || "";
     const description = byName("description") || byProp("og:description") || "";
     const ogImage = byProp("og:image") || "";
     const themeColor = byName("theme-color") || "";
     let fallbackDesc = "";
     if (!description) {
-      const p = document.querySelector("main p, article p");
-      if (p) fallbackDesc = (p.innerText || "").trim().slice(0, 280);
+      const p = document.querySelector<HTMLElement>("main p, article p");
+      if (p) fallbackDesc = (p.innerText || p.textContent || "").trim().slice(0, 280);
     }
     return {
       description: description || fallbackDesc,
@@ -57,10 +75,10 @@ function extractPageMeta() {
   }
 }
 
-export async function captureCurrentSession(name, source = "user", skipMeta = false) {
+export async function captureCurrentSession(name: string, source: SessionSource = "user", skipMeta = false): Promise<Session> {
   const sessionId = createSessionId();
   const windows = await chrome.windows.getAll({ populate: true, windowTypes: ["normal"] });
-  let allGroups = [];
+  let allGroups: chrome.tabGroups.TabGroup[] = [];
   try {
     allGroups = await chrome.tabGroups.query({});
   } catch (e) {
@@ -93,7 +111,7 @@ export async function captureCurrentSession(name, source = "user", skipMeta = fa
       const batch = sortedTabs.slice(i, i + 5);
       const batchResults = await Promise.all(
         batch.map(async (tab) => {
-          let pageMeta = { description: "", ogTitle: "", ogDescription: "", ogImage: "", themeColor: "", h1: "" };
+          let pageMeta: PageMeta = { description: "", ogTitle: "", ogDescription: "", ogImage: "", themeColor: "", h1: "" };
           if (!skipMeta) {
             if (tab.url && (tab.url.startsWith("http://") || tab.url.startsWith("https://"))) {
               try {
@@ -184,7 +202,7 @@ export async function captureCurrentSession(name, source = "user", skipMeta = fa
  * scripting (CSP, chrome://, PDF, closed) are silently skipped; the save is
  * already durable without them.
  */
-export async function enrichSession(sessionId) {
+export async function enrichSession(sessionId: string): Promise<void> {
   const session = await getSessionById(sessionId);
   if (!session) return;
 
@@ -194,12 +212,13 @@ export async function enrichSession(sessionId) {
     for (const tab of win.tabs || []) {
       if (!tab.url || !tab.url.startsWith("http")) continue;
       // Legacy sessions saved before tab ids were persisted cannot be enriched.
-      if (!Number.isInteger(tab.tabId) || tab.tabId < 0) continue;
+      const tabId = tab.tabId;
+      if (!Number.isInteger(tabId) || tabId === undefined || tabId < 0) continue;
       // Skip tabs that already have meaningful meta (re-enrich guard)
       if (tab.meta?.description || tab.meta?.ogTitle) continue;
 
       try {
-        const results = await executeScriptWithTimeout({ tabId: tab.tabId }, extractPageMeta);
+        const results = await executeScriptWithTimeout({ tabId }, extractPageMeta);
         if (results?.[0]?.result) {
           const meta = results[0].result;
           tab.meta = {

@@ -1,10 +1,19 @@
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => document.querySelectorAll(s);
+import { getDomainFromUrl } from "../lib/session-model.js";
+import type { RuntimeNotification, RuntimeRequest, RuntimeResponse } from "../lib/messages.js";
+import type { Session, SavedGroup, SavedTab, SavedWindow } from "../lib/types.js";
+
+const $ = <T extends Element = HTMLElement>(selector: string): T => {
+  const element = document.querySelector<T>(selector);
+  if (!element) throw new Error(`Missing required element: ${selector}`);
+  return element;
+};
+const $$ = <T extends Element = HTMLElement>(selector: string): NodeListOf<T> =>
+  document.querySelectorAll<T>(selector);
 
 // --- Elements ---
 const sessionList = $("#sessionList");
-const template = $("#sessionTemplate");
-const tabRowTemplate = $("#tabRowTemplate");
+const template = $("#sessionTemplate") as HTMLTemplateElement;
+const tabRowTemplate = $("#tabRowTemplate") as HTMLTemplateElement;
 
 // Detail panel
 const detailPanel = $("#detailPanel");
@@ -23,9 +32,9 @@ const listSearch = $("#listSearch");
 const countLabel = $("#countLabel");
 
 // --- State ---
-let sessions = [];
-let selectedId = null;
-let filter = "all"; // "all" | "user" | "auto"
+let sessions: Session[] = [];
+let selectedId: string | null = null;
+let filter: "all" | "user" | "auto" = "all";
 let listQuery = "";
 let detailQuery = "";
 
@@ -41,14 +50,10 @@ const GroupColors = {
   orange: "#f97316",
 };
 
-async function send(msg) {
-  return new Promise((resolve) => chrome.runtime.sendMessage(msg, resolve));
-}
-
 // Debounce helper for search inputs
-function debounce(fn, ms) {
-  let timer;
-  return (...args) => {
+function debounce(fn: (...args: never[]) => void, ms: number) {
+  let timer: ReturnType<typeof setTimeout>;
+  return (...args: never[]) => {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), ms);
   };
@@ -57,7 +62,7 @@ function debounce(fn, ms) {
 // Send a message to the background service worker with a timeout so a
 // silent failure never leaves the popup stuck on "Loading…".
 // SaveCurrent needs a longer budget: it captures every tab with page meta.
-async function send(msg, timeoutMs = 5000) {
+async function send(msg: RuntimeRequest, timeoutMs = 5000): Promise<RuntimeResponse> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("Message timeout: " + msg.type)), timeoutMs);
     chrome.runtime.sendMessage(msg, (response) => {
@@ -147,8 +152,8 @@ function renderList(listSessions) {
   }
   const frag = document.createDocumentFragment();
   listSessions.forEach((sess) => {
-    const clone = template.content.cloneNode(true);
-    const card = clone.querySelector(".session-card");
+    const clone = template.content.cloneNode(true) as DocumentFragment;
+    const card = clone.querySelector(".session-card") as HTMLElement;
     card.dataset.id = sess.id;
     if (sess.id === selectedId) card.classList.add("selected");
 
@@ -185,7 +190,7 @@ function renderList(listSessions) {
 
     // Clicking the card body selects the session; buttons stop propagation.
     card.addEventListener("click", (e) => {
-      if (e.target.closest("button")) return;
+      if ((e.target as Element)?.closest("button")) return;
       selectSession(sess.id);
     });
 
@@ -273,7 +278,7 @@ function renderTreeview(sess) {
 
     const winDetails = document.createElement("details");
     winDetails.className = "win-details";
-    winDetails.setAttribute("open", true);
+    winDetails.setAttribute("open", "");
     const winSummary = document.createElement("summary");
     winSummary.textContent = `Window ${wIdx + 1} (${win.tabs.length} tabs)`;
     winDetails.appendChild(winSummary);
@@ -296,7 +301,7 @@ function renderTreeview(sess) {
     groupsMap.forEach(({ group, tabs }) => {
       const grpDetails = document.createElement("details");
       grpDetails.className = "grp-details";
-      grpDetails.setAttribute("open", true);
+      grpDetails.setAttribute("open", "");
       const grpSummary = document.createElement("summary");
       const colorDot = document.createElement("span");
       colorDot.style.cssText = `display:inline-block;width:8px;height:8px;border-radius:50%;background:${GroupColors[group.color] || "#94a3b8"};margin-right:6px;`;
@@ -314,7 +319,7 @@ function renderTreeview(sess) {
     if (ungrouped.length) {
       const ungDetails = document.createElement("details");
       ungDetails.className = "grp-details";
-      ungDetails.setAttribute("open", true);
+      ungDetails.setAttribute("open", "");
       const ungSummary = document.createElement("summary");
       ungSummary.textContent = "Ungrouped tabs";
       ungDetails.appendChild(ungSummary);
@@ -348,29 +353,29 @@ function renderTabRows(container, tabs, query) {
     }
     rendered++;
 
-    const clone = tabRowTemplate.content.cloneNode(true);
-    const row = clone.querySelector(".tab-row");
+    const clone = tabRowTemplate.content.cloneNode(true) as DocumentFragment;
+    const row = clone.querySelector(".tab-row") as HTMLElement;
     row.dataset.url = tab.url || "";
 
-    const favicon = clone.querySelector(".tab-favicon");
+    const favicon = clone.querySelector(".tab-favicon") as HTMLImageElement;
     favicon.src = tab.favIconUrl || "";
     favicon.alt = "";
 
-    const titleEl = clone.querySelector(".tab-title");
+    const titleEl = clone.querySelector(".tab-title") as HTMLElement;
     titleEl.textContent = tab.title || tab.url || "Untitled";
     titleEl.title = tab.title || tab.url || "";
 
     const domainEl = clone.querySelector(".tab-domain");
     domainEl.textContent = getDomainFromUrl(tab.url || "");
 
-    const openTabBtn = clone.querySelector(".open-tab");
+    const openTabBtn = clone.querySelector(".open-tab") as HTMLElement;
     openTabBtn.onclick = (e) => {
       e.stopPropagation();
       e.preventDefault();
       chrome.tabs.create({ url: tab.url });
     };
 
-    const openWinBtn = clone.querySelector(".open-window");
+    const openWinBtn = clone.querySelector(".open-window") as HTMLElement;
     openWinBtn.onclick = (e) => {
       e.stopPropagation();
       e.preventDefault();
@@ -420,11 +425,11 @@ function restoreSessionById(id) {
 
 // Filter toggle
 filterToggle.addEventListener("click", (e) => {
-  const btn = e.target.closest("button");
+  const btn = (e.target as Element)?.closest("button");
   if (!btn) return;
   $$("#filterToggle button").forEach((b) => b.classList.remove("active"));
   btn.classList.add("active");
-  filter = btn.dataset.filter;
+  filter = (btn.dataset.filter as "all" | "user" | "auto") ?? "all";
   renderList(filteredSessions());
   updateCount();
 });
@@ -433,7 +438,7 @@ filterToggle.addEventListener("click", (e) => {
 listSearch.addEventListener(
   "input",
   debounce(() => {
-    listQuery = listSearch.value;
+    listQuery = (listSearch as HTMLInputElement).value;
     renderList(filteredSessions());
     updateCount();
   }, 150),
@@ -443,7 +448,7 @@ listSearch.addEventListener(
 detailSearch.addEventListener(
   "input",
   debounce(() => {
-    detailQuery = detailSearch.value;
+    detailQuery = (detailSearch as HTMLInputElement).value;
     const sess = sessions.find((s) => s.id === selectedId);
     if (sess) renderTreeview(sess);
   }, 150),
@@ -453,7 +458,7 @@ $("#saveBtn").addEventListener("click", async (e) => {
   e.stopPropagation();
   e.preventDefault();
   if (confirm(`Are you sure to save the current session?`)) {
-    const name = $("#sessionName").value.trim();
+    const name = ($("#sessionName") as HTMLInputElement).value.trim();
     // Save is acknowledged immediately by the service worker (quick snapshot,
     // no per-tab scripting). Background enrichment completes independently.
     const res = await send({ type: "SaveCurrent", name: name || undefined }, 5000);
@@ -461,7 +466,7 @@ $("#saveBtn").addEventListener("click", async (e) => {
       alert("Save failed: " + res.error);
       return;
     }
-    $("#sessionName").value = "";
+    ($("#sessionName") as HTMLInputElement).value = "";
     refresh();
   }
 });
@@ -496,13 +501,3 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 document.addEventListener("DOMContentLoaded", refresh);
-
-// Small helper used by detail rendering (avoids re-importing session-model)
-function getDomainFromUrl(url) {
-  try {
-    return new URL(url).hostname.replace("www.", "");
-  } catch (e) {
-    console.warn("[EdgeSessions] Failed to extract domain from URL", { url, error: e });
-    return "";
-  }
-}

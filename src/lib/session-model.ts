@@ -1,23 +1,18 @@
-// Schema Version: 2
-// Adds `source` ("user"|"auto") to every session so user-saved and
-// auto-saved sessions share one list, can be filtered separately, and are
-// pruned by independent retention caps.
-// This file is imported by both background and popup via ES Modules.
-// In MV3, service worker supports import.
+import type { GroupColor, RestoreMode, Session, Settings, SettingsPatch } from "./types.js";
 
 export const SchemaVersion = 2;
 export const StorageKeys = {
   SESSIONS: "SessionsV1",
   SETTINGS: "SettingsV1",
   AUTOSAVE: "AutosaveSnapshotV1",
-};
+} as const;
 
 export const RestoreModes = Object.freeze({
   AUTO: "auto",
   FAST: "fast",
   THROTTLED: "throttled",
   PLACEHOLDER: "placeholder",
-});
+} as const);
 
 export const SettingLimits = Object.freeze({
   autosaveIntervalMinutes: { min: 1, max: 120, default: 15 },
@@ -27,7 +22,7 @@ export const SettingLimits = Object.freeze({
   fastThreshold: { min: 10, max: 200, default: 80 },
 });
 
-export const DefaultSettings = {
+export const DefaultSettings: Settings = {
   autosaveEnabled: true,
   autosaveIntervalMinutes: 15,
   restoreInNewWindow: true,
@@ -35,12 +30,8 @@ export const DefaultSettings = {
   restorePinnedFirst: true,
   delayBetweenTabsMs: 120,
   delayBetweenWindowsMs: 400,
-
-  // --- Session retention / auto-prune (isolated by save source) ---
   maxUserSessions: 50,
   maxAutoSessions: 30,
-
-  // --- Restore processing ---
   restoreMode: RestoreModes.AUTO,
   autoDiscardEnabled: true,
   placeholderThreshold: 250,
@@ -50,7 +41,9 @@ export const DefaultSettings = {
   placeholderAutoLoad: true,
 };
 
-function clampSetting(value, limit) {
+interface SettingLimit { min: number; max: number; default: number }
+
+function clampSetting(value: unknown, limit: SettingLimit): number {
   const number = Number(value);
   if (!Number.isFinite(number)) return limit.default;
   return Math.min(limit.max, Math.max(limit.min, Math.round(number)));
@@ -60,8 +53,8 @@ function clampSetting(value, limit) {
  * Normalize persisted or user-supplied settings to the canonical schema.
  * This also repairs legacy/out-of-range values before they reach the UI.
  */
-export function normalizeSettings(settings = {}) {
-  const merged = { ...DefaultSettings, ...settings };
+export function normalizeSettings(settings: SettingsPatch & Record<string, unknown> = {}): Settings {
+  const merged = { ...DefaultSettings, ...settings } as Settings & Record<string, unknown>;
   delete merged.maxSessions;
   delete merged.adaptiveRestoreEnabled;
 
@@ -69,13 +62,10 @@ export function normalizeSettings(settings = {}) {
     merged[key] = clampSetting(merged[key], limit);
   }
 
-  if (!Object.values(RestoreModes).includes(merged.restoreMode)) {
+  if (!Object.values(RestoreModes).includes(merged.restoreMode as RestoreMode)) {
     merged.restoreMode = RestoreModes.AUTO;
   }
 
-  // Automatic mode requires a non-empty fast range below placeholder mode.
-  // Repair legacy/invalid stored values by raising the placeholder boundary;
-  // this keeps the fast threshold inside its documented 10-200 range.
   if (merged.fastThreshold >= merged.placeholderThreshold) {
     merged.placeholderThreshold = Math.min(
       SettingLimits.placeholderThreshold.max,
@@ -90,8 +80,8 @@ export function normalizeSettings(settings = {}) {
  * Validate a settings patch before persistence. Thresholds are cross-checked
  * so a user cannot save an ambiguous or unreachable restore range.
  */
-export function validateSettingsPatch(patch = {}) {
-  const errors = [];
+export function validateSettingsPatch(patch: SettingsPatch & Record<string, unknown> = {}) {
+  const errors: string[] = [];
   const fastLimit = SettingLimits.fastThreshold;
   const placeholderLimit = SettingLimits.placeholderThreshold;
   const fastValue = clampSetting(patch.fastThreshold, fastLimit);
@@ -172,39 +162,43 @@ export function validateSettingsPatch(patch = {}) {
  * @property {SavedGroup[]} groups
  */
 
-export function createSessionId() {
+export function createSessionId(): string {
   return `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-export function validateSession(session) {
+export function validateSession(session: unknown): session is Session {
   if (!session || typeof session !== "object") return false;
-  if (!Array.isArray(session.windows)) return false;
-  if (!Array.isArray(session.groups)) return false;
-  return true;
+  const candidate = session as Partial<Session>;
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.version === "number" &&
+    typeof candidate.name === "string" &&
+    typeof candidate.createdAt === "number" &&
+    Array.isArray(candidate.windows) &&
+    Array.isArray(candidate.groups)
+  );
 }
 
-export function isRestorableUrl(url) {
+export function isRestorableUrl(url: unknown): url is string {
   if (!url || typeof url !== "string") return false;
-  // Edge / Chrome internal pages cannot be recreated via tabs.create
-  // We keep them in the snapshot but skip on restore, with a report.
   const blockedPrefixes = ["edge://", "chrome://", "chrome-extension://", "chrome-search://", "about:", "view-source:", "data:", "javascript:"];
-  return !blockedPrefixes.some((p) => url.startsWith(p));
+  return !blockedPrefixes.some((prefix) => url.startsWith(prefix));
 }
 
-export function sanitizeGroupColor(color) {
-  const valid = ["grey", "blue", "red", "yellow", "green", "pink", "purple", "cyan", "orange"];
-  return valid.includes(color) ? color : "grey";
+export function sanitizeGroupColor(color: string): GroupColor {
+  const valid: GroupColor[] = ["grey", "blue", "red", "yellow", "green", "pink", "purple", "cyan", "orange"];
+  return valid.includes(color as GroupColor) ? (color as GroupColor) : "grey";
 }
 
-export function getDomainFromUrl(url) {
+export function getDomainFromUrl(url: string): string {
   try {
-    return new URL(url).hostname.replace("www.", "");
-  } catch (e) {
-    console.warn("[EdgeSessions] Failed to extract domain from URL", { url, error: e });
+    return new URL(url).hostname.replace(/^www\./i, "");
+  } catch (error) {
+    console.warn("[EdgeSessions] Failed to extract domain from URL", { url, error });
     return "";
   }
 }
 
-export function createTabKey(sessionId, windowIndex, tabIndex) {
+export function createTabKey(sessionId: string, windowIndex: number, tabIndex: number): string {
   return `${sessionId}-w${windowIndex}-t${tabIndex}`;
 }

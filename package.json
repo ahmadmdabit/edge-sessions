@@ -1,0 +1,24 @@
+{
+  "name": "edge-sessions",
+  "description": "Edge Sessions - Save Tabs & Tab Groups: Save and restore your entire 【entity-Edge¦canonical_name=Microsoft Edge】 session: all windows, tabs, and tab group names, colors, and order. Adaptive lazy restore prevents OOM.",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "bun": ">=1.4.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck:tools": "tsc --noEmit -p tsconfig.tools.json",
+    "build": "bun run tools/build.ts",
+    "build:dev": "bun run tools/build.ts --dev",
+    "test": "bun test tests/session-model.test.ts tests/storage.test.ts tests/restore.test.ts tests/messages.test.ts",
+    "test:artifacts": "bun test tests/build-artifact.test.ts",
+    "check": "bun run typecheck && bun run typecheck:tools && bun run test && bun run build && bun run test:artifacts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.4",
+    "@types/chrome": "0.1.28",
+    "typescript": "7.0.2"
+  }
+}

@@ -1,23 +1,19 @@
-// src/lib/restore.js - Adaptive Restore v3
-// Tier 1: <= fastThreshold - Fast restore + discard inactive
-// Tier 2: fastThreshold < count <= placeholderThreshold - Throttled + discard + batching
-// Tier 3: > placeholderThreshold - Placeholder mode, zero OOM
+import { isRestorableUrl, sanitizeGroupColor } from "./session-model.js";
+import type { RestoreMode, RestoreReport, SavedTab, Session, Settings } from "./types.js";
 
 const DEBUG = false;
-function debug(...args) {
+function debug(...args: unknown[]) {
   if (DEBUG) console.log(...args);
 }
 
-import { isRestorableUrl, sanitizeGroupColor } from "./session-model.js";
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Yield to event loop so popup / UI doesn't freeze
 async function yieldToUI() {
   await new Promise((r) => setTimeout(r, 0));
 }
 
-function buildPlaceholderUrl(savedTab, session) {
+export function buildPlaceholderUrl(savedTab: SavedTab, session: Session): string {
   const params = new URLSearchParams();
   params.set("sessionId", session.id);
   params.set("tabKey", savedTab.tabKey);
@@ -27,8 +23,10 @@ function buildPlaceholderUrl(savedTab, session) {
   return chrome.runtime.getURL(`src/pages/placeholder.html?${params.toString()}`);
 }
 
-export async function restoreSession(session, settings, onProgress = () => {}) {
-  const report = {
+export type RestoreProgress = (done: number, total: number, message: string) => void;
+
+export async function restoreSession(session: Session, settings: Settings, onProgress: RestoreProgress = () => { }): Promise<RestoreReport> {
+  const report: RestoreReport = {
     restoredTabs: 0,
     skippedTabs: [],
     errors: [],
@@ -61,7 +59,7 @@ export async function restoreSession(session, settings, onProgress = () => {}) {
 
   // Decide mode. Explicit user selection overrides automatic thresholds;
   // automatic mode preserves the original adaptive behavior.
-  let mode = requestedMode;
+  let mode: RestoreMode = requestedMode as RestoreMode;
   if (!["fast", "throttled", "placeholder"].includes(mode)) {
     if (totalTabs > placeholderThreshold) mode = "placeholder";
     else if (totalTabs > fastThreshold) mode = "throttled";
@@ -74,8 +72,8 @@ export async function restoreSession(session, settings, onProgress = () => {}) {
   // Effective delays per mode
   const delayBetweenTabs =
     mode === "fast" ? 20
-    : mode === "throttled" ? settings.delayBetweenTabsMs || 120
-    : 10;
+      : mode === "throttled" ? settings.delayBetweenTabsMs || 120
+        : 10;
   const delayBetweenWindows = mode === "placeholder" ? 100 : settings.delayBetweenWindowsMs || 300;
 
   let done = 0;
@@ -83,6 +81,7 @@ export async function restoreSession(session, settings, onProgress = () => {}) {
 
   for (let wIdx = 0; wIdx < session.windows.length; wIdx++) {
     const savedWin = session.windows[wIdx];
+    if (!savedWin) continue;
     if (!savedWin.tabs || savedWin.tabs.length === 0) continue;
 
     // Filter
@@ -112,10 +111,11 @@ export async function restoreSession(session, settings, onProgress = () => {}) {
     }
 
     const first = tabsToRestore[0];
+    if (!first) continue;
 
     // --- 1. CREATE WINDOW (minimal params, no bounds) ---
-    let newWindow;
-    let firstTabId;
+    let newWindow: chrome.windows.Window | undefined;
+    let firstTabId: number | null = null;
     try {
       // For placeholder mode, first tab is also a placeholder
       let firstUrl = first.url;
@@ -142,20 +142,24 @@ export async function restoreSession(session, settings, onProgress = () => {}) {
         url: first.url,
         error: e,
       });
-      report.errors.push({ window: wIdx, url: first.url, error: e.message });
+      const message = e instanceof Error ? e.message : String(e);
+      report.errors.push({ window: wIdx, url: first.url, error: message });
+      const fallbackUrl = mode === "placeholder" ? buildPlaceholderUrl(first, session) : first.url;
       try {
-        const fallbackUrl = mode === "placeholder" ? buildPlaceholderUrl(first, session) : first.url;
         newWindow = await chrome.windows.create({ url: fallbackUrl, focused: wIdx === 0 });
       } catch (e2) {
+        const message2 = e2 instanceof Error ? e2.message : String(e2);
         console.error("[EdgeSessions] Fallback restore window creation failed", {
           windowIndex: wIdx,
           url: fallbackUrl,
-          error: e2,
+          error: message2,
         });
-        report.errors.push({ window: wIdx, error: "Fallback failed: " + e2.message });
+        report.errors.push({ window: wIdx, error: "Fallback failed: " + message2 });
         continue;
       }
     }
+
+    if (!newWindow) continue;
 
     report.createdWindows.push(newWindow.id);
 
@@ -181,7 +185,7 @@ export async function restoreSession(session, settings, onProgress = () => {}) {
       try {
         const tabsInNewWin = await chrome.tabs.query({ windowId: newWindow.id });
         const match = tabsInNewWin[0];
-        firstTabId = match?.id;
+        firstTabId = match?.id ?? null;
       } catch (e) {
         console.warn("[EdgeSessions] Failed to resolve first restored tab", {
           windowIndex: wIdx,
@@ -208,7 +212,7 @@ export async function restoreSession(session, settings, onProgress = () => {}) {
     done++;
     onProgress(done, totalTabs, `Window ${wIdx + 1}: ${first.title} [${mode}]`);
 
-    const groupKeyToNewTabIds = new Map();
+    const groupKeyToNewTabIds = new Map<string, number[]>();
     if (first.groupKey && firstTabId) groupKeyToNewTabIds.set(first.groupKey, [firstTabId]);
 
     // Track tabs to discard later (after grouping)
@@ -234,28 +238,34 @@ export async function restoreSession(session, settings, onProgress = () => {}) {
           pinned: !!tab.pinned,
         });
 
+        // Newly created tabs always receive an id in Chromium; guard
+        // defensively so a missing id cannot break grouping or discard.
+        const newTabId = newTab.id;
+        if (newTabId === undefined) continue;
+
         if (tab.groupKey) {
           if (!groupKeyToNewTabIds.has(tab.groupKey)) groupKeyToNewTabIds.set(tab.groupKey, []);
-          groupKeyToNewTabIds.get(tab.groupKey).push(newTab.id);
+          groupKeyToNewTabIds.get(tab.groupKey)?.push(newTabId);
         }
 
         // Mark for discard (only in non-placeholder modes)
         if (mode !== "placeholder" && settings.autoDiscardEnabled !== false) {
           // Don't discard if this is the active tab - user will land on it
-          if (tab.url !== activeTabUrl) tabsToDiscard.push(newTab.id);
+          if (tab.url !== activeTabUrl) tabsToDiscard.push(newTabId);
         }
 
         report.restoredTabs++;
         if (mode === "placeholder") report.placeholderCount++;
-      } catch (e) {
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         console.error("[EdgeSessions] Failed to create restored tab", {
           windowIndex: wIdx,
           tabKey: tab.tabKey,
           url: tab.url,
-          error: e,
+          error: message,
         });
-        report.errors.push({ url: tab.url, error: e.message });
-        report.skippedTabs.push({ url: tab.url, reason: e.message });
+        report.errors.push({ url: tab.url, error: message });
+        report.skippedTabs.push({ url: tab.url, reason: message });
       }
 
       done++;
@@ -279,7 +289,7 @@ export async function restoreSession(session, settings, onProgress = () => {}) {
       if (tabIds.length === 0) continue;
       try {
         const newGroupId = await chrome.tabs.group({
-          tabIds,
+          tabIds: tabIds as [number, ...number[]],
           createProperties: { windowId: newWindow.id },
         });
         await chrome.tabGroups.update(newGroupId, {
@@ -287,14 +297,15 @@ export async function restoreSession(session, settings, onProgress = () => {}) {
           color: sanitizeGroupColor(group.color),
           collapsed: !!group.collapsed,
         });
-      } catch (e) {
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         console.error("[EdgeSessions] Failed to restore tab group", {
           windowIndex: wIdx,
           groupKey: group.key,
           groupTitle: group.title,
-          error: e,
+          error: message,
         });
-        report.errors.push({ group: group.title, error: e.message });
+        report.errors.push({ group: group.title, error: message });
       }
       await sleep(30);
     }
