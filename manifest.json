@@ -1,0 +1,56 @@
+{
+  "manifest_version": 3,
+  "name": "Edge Sessions - Save Tabs & Tab Groups",
+  "version": "1.0.0",
+  "description": "Save and restore your entire 【entity-Edge¦canonical_name=Microsoft Edge】 session: all windows, tabs, and tab group names, colors, and order. Adaptive lazy restore prevents OOM.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "tabs",
+    "tabGroups",
+    "windows",
+    "storage",
+    "alarms",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Edge Sessions",
+    "default_icon": {
+      "16": "icons/edge-sessions-128.png",
+      "48": "icons/edge-sessions-128.png",
+      "128": "icons/edge-sessions-128.png"
+    }
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/edge-sessions-128.png",
+    "48": "icons/edge-sessions-128.png",
+    "128": "icons/edge-sessions-128.png"
+  },
+  "commands": {
+    "quick-save": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Quick save current session"
+    },
+    "quick-restore-last": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+R",
+        "mac": "Command+Shift+R"
+      },
+      "description": "Restore last saved session"
+    }
+  }
+}

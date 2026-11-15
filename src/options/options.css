@@ -1,0 +1,164 @@
+/* src/options/options.css - Options page layout (global.css loaded first) */
+
+body {
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+.app-header-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.app-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.status-message {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-md);
+  background: var(--es-surface);
+  font-size: 13px;
+}
+
+.status-message.success {
+  border-color: #86efac;
+  color: var(--es-success);
+  background: #f0fdf4;
+}
+
+.status-message.error {
+  border-color: #fca5a5;
+  color: var(--es-danger);
+  background: #fef2f2;
+}
+
+.settings-section {
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--es-accent-fg);
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--es-fg-soft);
+  cursor: pointer;
+}
+
+.number-field,
+.select-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.number-field>label,
+.select-field>label {
+  color: var(--es-fg-soft);
+  font-weight: 600;
+}
+
+.number-field>.form-control {
+  width: 130px;
+}
+
+.input-with-suffix {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--es-muted);
+}
+
+.input-with-suffix .form-control {
+  width: 110px;
+}
+
+.select-field .form-control {
+  width: min(100%, 300px);
+}
+
+.field-help {
+  margin: 6px 0 6px;
+  color: var(--es-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.field-help.indent {
+  margin-top: -8px;
+  margin-left: 28px;
+}
+
+.field-error {
+  margin: 0;
+  color: var(--es-danger);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.form-actions .btn {
+  min-width: 160px;
+  padding: 12px 18px;
+}
+
+@media (max-width: 560px) {
+
+  .number-field,
+  .select-field {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .number-field>.form-control,
+  .select-field .form-control,
+  .input-with-suffix .form-control {
+    width: 100%;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+}

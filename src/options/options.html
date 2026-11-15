@@ -1,0 +1,124 @@
+<!-- src/options/options.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge Sessions Settings</title>
+    <link rel="stylesheet" href="../styles/global.css">
+    <link rel="stylesheet" href="options.css">
+</head>
+
+<body>
+    <header class="app-header">
+        <div class="app-header-inner">
+            <h1 class="app-title">
+                <img class="app-logo" alt="" src="../../icons/edge-sessions-128.png" />
+                Edge Sessions Settings
+            </h1>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="pageStatus" class="status-message" role="status" aria-live="polite" hidden></div>
+
+        <form id="settingsForm" novalidate>
+
+            <section class="surface-card settings-section" aria-labelledby="generalHeading">
+                <h2 id="generalHeading" class="section-title">General</h2>
+                <div class="field-group">
+                    <label class="checkbox-field" for="autosaveEnabled">
+                        <input class="form-control" type="checkbox" id="autosaveEnabled">
+                        <span>Enable autosave</span>
+                    </label>
+                    <div class="number-field">
+                        <label for="autosaveIntervalMinutes">Autosave every</label>
+                        <div class="input-with-suffix">
+                            <input class="form-control" type="number" id="autosaveIntervalMinutes" min="1" max="120" required>
+                            <span>minutes</span>
+                        </div>
+                    </div>
+                    <label class="checkbox-field" for="restorePinnedFirst">
+                        <input class="form-control" type="checkbox" id="restorePinnedFirst">
+                        <span>Restore pinned tabs first</span>
+                    </label>
+                    <label class="checkbox-field" for="skipInternalPages">
+                        <input class="form-control" type="checkbox" id="skipInternalPages">
+                        <span>Skip edge:// and chrome:// pages on restore</span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="surface-card settings-section" aria-labelledby="restoreHeading">
+                <h2 id="restoreHeading" class="section-title">Restore processing</h2>
+                <div class="field-group">
+                    <div class="select-field">
+                        <label for="restoreMode">Processing mode</label>
+                        <select class="form-control" id="restoreMode">
+                            <option value="auto">Automatic (recommended)</option>
+                            <option value="fast">Always fast</option>
+                            <option value="throttled">Always throttled</option>
+                            <option value="placeholder">Always placeholder (lowest memory)</option>
+                        </select>
+                        <p class="field-help">Automatic chooses a mode from the tab-count thresholds below.</p>
+                    </div>
+                    <label class="checkbox-field" for="autoDiscardEnabled">
+                        <input class="form-control" type="checkbox" id="autoDiscardEnabled">
+                        <span>Auto-discard inactive tabs after restore</span>
+                    </label>
+                    <p class="field-help indent">Keeps title and favicon, uses minimal memory, and loads the tab on click.</p>
+                    <div class="number-field">
+                        <label for="fastThreshold">Fast mode up to</label>
+                        <div class="input-with-suffix">
+                            <input class="form-control" type="number" id="fastThreshold" min="10" max="200" required>
+                            <span>tabs</span>
+                        </div>
+                    </div>
+                    <div class="number-field">
+                        <label for="placeholderThreshold">Placeholder mode above</label>
+                        <div class="input-with-suffix">
+                            <input class="form-control" type="number" id="placeholderThreshold" min="10" max="1000" step="10" required>
+                            <span>tabs</span>
+                        </div>
+                    </div>
+                    <p id="thresholdError" class="field-error" role="alert" hidden>Fast mode threshold must be lower than the placeholder threshold.</p>
+                    <p class="field-help">Fast restores immediately, throttled restores in batches, and placeholder restores lightweight pages that load the real page on activation.</p>
+                </div>
+            </section>
+
+            <section class="surface-card settings-section" aria-labelledby="retentionHeading">
+                <h2 id="retentionHeading" class="section-title">Session retention (auto-prune)</h2>
+                <div class="field-group">
+                    <div class="number-field">
+                        <label for="maxUserSessions">Max user-saved sessions</label>
+                        <input class="form-control" type="number" id="maxUserSessions" min="1" max="1000" required>
+                    </div>
+                    <div class="number-field">
+                        <label for="maxAutoSessions">Max auto-saved sessions</label>
+                        <input class="form-control" type="number" id="maxAutoSessions" min="1" max="1000" required>
+                    </div>
+                </div>
+                <p class="field-help">User and automatic sessions are pruned independently, so autosaves cannot evict manual saves.</p>
+            </section>
+
+            <section class="surface-card settings-section" aria-labelledby="dataHeading">
+                <h2 id="dataHeading" class="section-title">Session data</h2>
+                <p class="field-help">Export all saved sessions to a JSON file, or import sessions from a previously exported file.</p>
+                <div class="button-row">
+                    <button type="button" id="exportBtn" class="btn small">Export sessions</button>
+                    <button type="button" id="importBtn" class="btn small">Import sessions</button>
+                    <input type="file" id="importFile" accept="application/json,.json" hidden>
+                </div>
+            </section>
+
+            <div class="form-actions">
+                <button type="submit" id="save" class="btn primary">Save settings</button>
+            </div>
+        </form>
+    </main>
+
+    <script src="options.js"></script>
+</body>
+
+</html>
