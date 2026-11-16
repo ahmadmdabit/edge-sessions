@@ -1,32 +1,234 @@
 /* src/styles/global.css - Shared design system for all extension pages. */
 
 :root {
-  --es-bg: #f8fafc;
-  --es-fg: #0f172a;
-  --es-fg-soft: #334155;
-  --es-muted: #64748b;
-  --es-muted-strong: #475569;
-  --es-border: #e2e8f0;
-  --es-border-strong: #94a3b8;
-  --es-border-subtle: #cbd5e1;
-  --es-accent: #59ffad;
-  --es-accent-fg: #156f39;
-  --es-accent-soft: #e0f2fe;
+  /* ............................................................
+     NEUTRALS — Tailwind "neutral" (pure achromatic, no blue cast)
+     ............................................................ */
+  --es-bg: #fafafa;
+  /* neutral-50  */
   --es-surface: #ffffff;
-  --es-surface-hover: #f1f5f9;
-  --es-header: #0f172a;
-  --es-header-muted: #1e293b;
-  --es-focus: #0f766e;
-  --es-danger: #b91c1c;
-  --es-success: #166534;
+  --es-surface-hover: #f5f5f5;
+  /* neutral-100 */
+
+  /* Border hierarchy — subtle → strong (subtle is now lightest) */
+  --es-border-subtle: #e5e5e5;
+  /* neutral-200 */
+  --es-border: #d4d4d4;
+  /* neutral-300 */
+  --es-border-strong: #a3a3a3;
+  /* neutral-400 */
+
+  /* Text hierarchy — strong → muted */
+  --es-fg: #171717;
+  /* neutral-900 */
+  --es-fg-soft: #404040;
+  /* neutral-700 */
+  --es-muted-strong: #525252;
+  /* neutral-600 */
+  --es-muted: #737373;
+  /* neutral-500 */
+
+  /* Dark chrome — same neutral family */
+  --es-header: #171717;
+  /* neutral-900 */
+  --es-header-muted: #262626;
+  /* neutral-800 */
+
+  /* ............................................................
+     BRAND GREEN — pure green-600 family, zero blue undertone
+     ............................................................ */
+  --es-green-50: #f0fdf4;
+  --es-green-100: #dcfce7;
+  --es-green-200: #bbf7d0;
+  --es-green-600: #16a34a;
+  --es-green-700: #15803d;
+  --es-green-800: #166534;
+  --es-green-900: #14532d;
+
+  /* ---- ACCENT (brand CTA / links / active) ---- */
+  --es-accent: #16a34a;
+  /* green-600 — solid buttons, links */
+  --es-accent-hover: #15803d;
+  /* green-700 — hover / active */
+  --es-accent-fg: #ffffff;
+  /* text on solid accent */
+  --es-accent-soft: #f0fdf4;
+  /* green-50  — tinted surface */
+  --es-accent-soft-fg: #166534;
+  /* green-800 — text on soft */
+
+  /* ---- FOCUS — accent family, one step darker for visibility ---- */
+  --es-focus: #15803d;
+  /* green-700 */
+
+  /* ............................................................
+     SUCCESS — unified with the green scale (see docs below)
+     Disambiguated from accent by SURFACE + ICON, not by hue.
+     ............................................................ */
+  --es-success: #16a34a;
+  /* green-600 — icon / status dot */
+  --es-success-soft: #f0fdf4;
+  /* green-50  — alert / badge bg */
+  --es-success-fg: #166534;
+  /* green-800 — text on soft */
+
+  /* ............................................................
+     WARNING — gold (zero blue)
+     ............................................................ */
+  --es-warning: #a16207;
+  /* solid warning / primary icon */
+  --es-warning-hover: #854d0e;
+  /* hover / pressed */
+  --es-warning-fg: #ffffff;
+  /* text on solid warning */
+  --es-warning-soft: #fefce8;
+  /* alert / banner background */
+  --es-warning-soft-fg: #713f12;
+  /* text on soft alert */
+  --es-warning-border: #fef08a;
+  /* soft alert border */
+  --es-warning-icon: #b8860b;
+  /* icon on soft (non-text) */
+
+  /* ............................................................
+     WARN — amber used for the large-session notice
+     ............................................................ */
+  --es-warn-text: #d97707;
+  --es-warn-bg: #fef3c7;
+
+  /* ............................................................
+     FALLBACK GRAY — group-color default when a group color is unknown
+     ............................................................ */
+  --es-fallback-gray: #BBBBBB;
+
+  /* ............................................................
+     DANGER — magenta
+     ............................................................ */
+  --es-danger: #db2777;
+  /* pink-600  — solid danger button, error icon */
+  --es-danger-hover: #be185d;
+  /* pink-700  — hover / active */
+  --es-danger-fg: #ffffff;
+  /* text on solid danger */
+  --es-danger-soft: #fdf2f8;
+  /* pink-50   — alert / banner background */
+  --es-danger-soft-fg: #9d174d;
+  /* pink-800  — text on soft */
+  --es-danger-border: #fbcfe8;
+  /* pink-200  — soft alert border */
+
+  /* ............................................................
+     INFO — neutral + icon (replaces blue entirely)
+     Enforce <info-icon> at the component level.
+     ............................................................ */
+  --es-info: #525252;
+  /* neutral-600 */
+  --es-info-soft: #f5f5f5;
+  /* neutral-100 */
+  --es-info-fg: #171717;
+  /* neutral-900 */
+
+  /* ............................................................
+     RADIUS
+     ............................................................ */
   --es-radius-sm: 8px;
   --es-radius-md: 12px;
   --es-radius-lg: 16px;
   --es-radius-pill: 999px;
-  --es-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
-  --es-shadow-md: 0 10px 30px rgba(15, 23, 42, 0.08);
-  --es-shadow-edge: rgba(0, 0, 0, 0.28);
+
+  /* ............................................................
+     SHADOWS — tinted to neutral-900 (belongs to the palette)
+     ............................................................ */
+  --es-shadow-sm: 0 1px 2px rgba(23, 23, 23, 0.06);
+  --es-shadow-md: 0 10px 30px rgba(23, 23, 23, 0.08);
+  --es-shadow-edge: rgba(23, 23, 23, 0.24);
+
+  /* ............................................................
+     TYPOGRAPHY
+     ............................................................ */
   --es-font: "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  /* ............................................................
+     SPACING — gap / padding / margin
+     ............................................................ */
+  --es-space-2: 2px;
+  --es-space-3: 4px;
+  --es-space-4: 6px;
+  --es-space-5: 8px;
+  --es-space-6: 10px;
+  --es-space-7: 12px;
+  --es-space-8: 14px;
+  --es-space-9: 16px;
+  --es-space-10: 18px;
+  --es-space-11: 20px;
+  --es-space-12: 24px;
+  --es-space-13: 32px;
+  --es-space-14: 40px;
+  --es-space-5px: 5px;
+  --es-space-9px: 9px;
+  --es-space-3px: 3px;
+  --es-space-7px: 7px;
+  --es-space-28px: 28px;
+  --es-space-13px: 13px;
+
+  /* ............................................................
+     SIZING — fixed width / height / max-height
+     ............................................................ */
+  --es-size-11: 11px;
+  --es-size-16: 16px;
+  --es-size-22: 22px;
+  --es-size-28: 28px;
+  --es-size-30: 30px;
+  --es-size-64: 64px;
+  --es-size-110: 110px;
+  --es-size-130: 130px;
+  --es-size-160: 160px;
+  --es-size-300: 300px;
+  --es-size-349: 349px;
+  --es-size-560: 560px;
+  --es-size-600: 600px;
+  --es-size-760: 760px;
+  --es-size-785: 785px;
+  --es-size-220: 220px;
+  /* ............................................................
+     RADIUS — additional steps
+     ............................................................ */
+  --es-radius-xs: 4px;
+  --es-radius-compact: 6px;
+
+  /* ............................................................
+     TYPOGRAPHY — font-size / line-height / letter-spacing
+     ............................................................ */
+  --es-text-10: 10px;
+  --es-text-11: 11px;
+  --es-text-12: 12px;
+  --es-text-12-5: 12.5px;
+  --es-text-13: 13px;
+  --es-text-14: 14px;
+  --es-text-15: 15px;
+  --es-text-18: 18px;
+  --es-text-20: 20px;
+  --es-text-48: 48px;
+  --es-leading-1-3: 1.3;
+  --es-leading-1-4: 1.4;
+  --es-leading-1-5: 1.5;
+  --es-leading-1-6: 1.6;
+  --es-leading-2: 2;
+  --es-tracking-0-2: 0.2px;
+  --es-tracking-0-5: 0.5px;
+  --es-tracking-0-8: 0.8px;
+
+  /* ............................................................
+     BORDER WIDTH / Z-INDEX / OPACITY / TRANSITION
+     ............................................................ */
+  --es-border-width: 1px;
+  --es-border-width-3: 3px;
+  --es-z-1: 1;
+  --es-z-2: 2;
+  --es-opacity-0-58: 0.58;
+  --es-opacity-0-6: 0.6;
+  --es-opacity-0-85: 0.85;
+  --es-transition-fast: width 0.2s ease;
 }
 
 * {
@@ -43,7 +245,7 @@ body {
 /* Shared branded surfaces */
 .app-header {
   background: var(--es-header);
-  color: #fff;
+  color: var(--es-surface);
 }
 
 .app-logo {
@@ -73,8 +275,7 @@ body {
 }
 
 .btn.primary:hover {
-  background: var(--es-accent-fg);
-  color: var(--es-accent);
+  background: var(--es-accent-hover);
 }
 
 .btn.secondary {
@@ -127,7 +328,7 @@ body {
   width: 18px;
   height: 18px;
   padding: 0;
-  accent-color: var(--es-accent-fg);
+  accent-color: var(--es-accent);
 }
 
 /* The teal focus color provides a contrast-safe indicator on light surfaces

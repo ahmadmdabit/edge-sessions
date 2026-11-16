@@ -2,76 +2,76 @@
 
 body {
   min-height: 100vh;
-  line-height: 1.5;
+  line-height: var(--es-leading-1-5);
 }
 
 .app-header-inner {
-  max-width: 760px;
+  max-width: var(--es-size-760);
   margin: 0 auto;
-  padding: 16px;
+  padding: var(--es-space-9);
 }
 
 .app-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--es-space-6);
   margin: 0;
-  font-size: 20px;
+  font-size: var(--es-text-20);
   font-weight: 700;
-  letter-spacing: 0.2px;
+  letter-spacing: var(--es-tracking-0-2);
 }
 
 .container {
-  max-width: 760px;
+  max-width: var(--es-size-760);
   margin: 0 auto;
-  padding: 24px 16px 40px;
+  padding: var(--es-space-12) var(--es-space-9) var(--es-space-14);
 }
 
 .status-message {
-  margin-bottom: 16px;
-  padding: 12px 14px;
-  border: 1px solid var(--es-border);
+  margin-bottom: var(--es-space-9);
+  padding: var(--es-space-7) var(--es-space-8);
+  border: var(--es-border-width) solid var(--es-border);
   border-radius: var(--es-radius-md);
   background: var(--es-surface);
-  font-size: 13px;
+  font-size: var(--es-text-13);
 }
 
 .status-message.success {
-  border-color: #86efac;
+  border-color: var(--es-success);
   color: var(--es-success);
-  background: #f0fdf4;
+  background: var(--es-bg);
 }
 
 .status-message.error {
-  border-color: #fca5a5;
+  border-color: var(--es-danger);
   color: var(--es-danger);
-  background: #fef2f2;
+  background: var(--es-bg);
 }
 
 .settings-section {
-  padding: 20px;
-  margin-bottom: 16px;
+  padding: var(--es-space-11);
+  margin-bottom: var(--es-space-9);
 }
 
 .section-title {
-  margin: 0 0 16px;
-  font-size: 14px;
+  margin: 0 0 var(--es-space-9);
+  font-size: var(--es-text-14);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: var(--es-tracking-0-5);
   color: var(--es-accent-fg);
 }
 
 .field-group {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--es-space-8);
 }
 
 .checkbox-field {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--es-space-6);
   color: var(--es-fg-soft);
   cursor: pointer;
 }
@@ -81,7 +81,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--es-space-9);
 }
 
 .number-field>label,
@@ -91,47 +91,47 @@ body {
 }
 
 .number-field>.form-control {
-  width: 130px;
+  width: var(--es-size-130);
 }
 
 .input-with-suffix {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--es-space-5);
   color: var(--es-muted);
 }
 
 .input-with-suffix .form-control {
-  width: 110px;
+  width: var(--es-size-110);
 }
 
 .select-field .form-control {
-  width: min(100%, 300px);
+  width: min(100%, var(--es-size-300));
 }
 
 .field-help {
-  margin: 6px 0 6px;
+  margin: var(--es-space-4) 0 var(--es-space-4);
   color: var(--es-muted);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: var(--es-text-12);
+  line-height: var(--es-leading-1-5);
 }
 
 .field-help.indent {
   margin-top: -8px;
-  margin-left: 28px;
+  margin-left: var(--es-space-28px);
 }
 
 .field-error {
   margin: 0;
   color: var(--es-danger);
-  font-size: 12px;
+  font-size: var(--es-text-12);
   font-weight: 600;
 }
 
 .button-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--es-space-6);
 }
 
 .form-actions {
@@ -140,11 +140,11 @@ body {
 }
 
 .form-actions .btn {
-  min-width: 160px;
-  padding: 12px 18px;
+  min-width: var(--es-size-160);
+  padding: var(--es-space-7) var(--es-space-10);
 }
 
-@media (max-width: 560px) {
+@media (max-width: var(--es-size-560)) {
 
   .number-field,
   .select-field {

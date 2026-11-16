@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Edge Sessions - Save Tabs & Tab Groups",
   "version": "1.0.0",
-  "description": "Save and restore your entire 【entity-Edge¦canonical_name=Microsoft Edge】 session: all windows, tabs, and tab group names, colors, and order. Adaptive lazy restore prevents OOM.",
+  "description": "Save and restore your entire (entity-Edge:canonicalName=Microsoft Edge) session: all windows, tabs, and tab group names, colors, and order. Adaptive lazy restore prevents OOM.",
   "minimum_chrome_version": "116",
   "permissions": [
     "tabs",

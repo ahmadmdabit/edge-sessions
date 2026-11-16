@@ -1,6 +1,6 @@
 {
   "name": "edge-sessions",
-  "description": "Edge Sessions - Save Tabs & Tab Groups: Save and restore your entire 【entity-Edge¦canonical_name=Microsoft Edge】 session: all windows, tabs, and tab group names, colors, and order. Adaptive lazy restore prevents OOM.",
+  "description": "Edge Sessions - Save Tabs & Tab Groups: Save and restore your entire (entity-Edge:canonicalName=Microsoft Edge) session: all windows, tabs, and tab group names, colors, and order. Adaptive lazy restore prevents OOM.",
   "version": "1.0.0",
   "type": "module",
   "private": true,

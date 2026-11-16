@@ -138,7 +138,7 @@ import type { Session, SavedTab } from "../lib/types.js";
   // Theme color accent
   if (meta?.themeColor) {
     const card = document.querySelector<HTMLElement>(".placeholder-card");
-    if (card) card.style.borderTop = `4px solid ${meta.themeColor}`;
+    if (card) card.style.setProperty("--es-theme-color", meta.themeColor);
   }
 
   if (savedAt) {

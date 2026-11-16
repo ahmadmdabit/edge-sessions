@@ -147,7 +147,7 @@ function updateCount() {
 function renderList(listSessions) {
   sessionList.innerHTML = "";
   if (listSessions.length === 0) {
-    sessionList.innerHTML = '<p style="text-align:center;color:#64748b;font-size:13px;padding:16px;">No matching sessions.</p>';
+    sessionList.innerHTML = '<p style="text-align:center;color:var(--es-muted);font-size:13px;padding:16px;">No matching sessions.</p>';
     return;
   }
   const frag = document.createDocumentFragment();
@@ -164,19 +164,19 @@ function renderList(listSessions) {
     const isLarge = sess.tabCount > 250;
     if (isLarge) {
       const warn = document.createElement("div");
-      warn.style.cssText = "font-size:11px;color:#d97706;background:#fef3c7;padding:4px 6px;border-radius:6px;margin-top:6px;";
+      warn.className = "session-warn";
       warn.textContent = `⚠️ Large session (${sess.tabCount} tabs) - will restore as lazy placeholders to prevent OOM`;
       card.appendChild(warn);
     }
 
     const groupsEl = clone.querySelector(".groups-preview");
     if (sess.groups.length === 0) {
-      groupsEl.innerHTML = '<span style="font-size:11px;color:#94a3b8;">No tab groups</span>';
+      groupsEl.innerHTML = '<span class="group-empty">No tab groups</span>';
     } else {
       sess.groups.slice(0, 8).forEach((g) => {
         const pill = document.createElement("span");
         pill.className = "group-pill";
-        pill.style.borderLeftColor = GroupColors[g.color] || "#94a3b8";
+        pill.style.setProperty("--es-pill-color", GroupColors[g.color] || "var(--es-fallback-gray)");
         pill.textContent = `● ${g.title || "(Unnamed group)"}`;
         groupsEl.appendChild(pill);
       });
@@ -304,13 +304,14 @@ function renderTreeview(sess) {
       grpDetails.setAttribute("open", "");
       const grpSummary = document.createElement("summary");
       const colorDot = document.createElement("span");
-      colorDot.style.cssText = `display:inline-block;width:8px;height:8px;border-radius:50%;background:${GroupColors[group.color] || "#94a3b8"};margin-right:6px;`;
+      colorDot.className = "group-color-dot";
+      colorDot.style.setProperty("--es-dot-color", GroupColors[group.color] || "var(--es-fallback-gray)");
       grpSummary.appendChild(colorDot);
       grpSummary.textContent = group.title || "(Unnamed group)";
       grpDetails.appendChild(grpSummary);
 
       const tabsContainer = document.createElement("div");
-      tabsContainer.style.cssText = "padding-left: 18px;";
+      tabsContainer.className = "group-tabs-container";
       renderTabRows(tabsContainer, tabs, query);
       grpDetails.appendChild(tabsContainer);
       winDetails.appendChild(grpDetails);
@@ -325,7 +326,7 @@ function renderTreeview(sess) {
       ungDetails.appendChild(ungSummary);
 
       const tabsContainer = document.createElement("div");
-      tabsContainer.style.cssText = "padding-left: 18px;";
+      tabsContainer.className = "group-tabs-container";
       renderTabRows(tabsContainer, ungrouped, query);
       ungDetails.appendChild(tabsContainer);
       winDetails.appendChild(ungDetails);
@@ -335,7 +336,7 @@ function renderTreeview(sess) {
   });
 
   if (frag.children.length === 0) {
-    detailTree.innerHTML = '<p style="color:#64748b;font-size:12px;padding:8px;">No tabs in this session.</p>';
+    detailTree.innerHTML = '<p style="color:var(--es-muted);font-size:12px;padding:8px;">No tabs in this session.</p>';
   } else {
     detailTree.appendChild(frag);
   }
@@ -386,7 +387,7 @@ function renderTabRows(container, tabs, query) {
   });
 
   if (rendered === 0 && query) {
-    container.innerHTML = '<p style="font-size:11px;color:#64748b;padding:4px 0;">No matching tabs.</p>';
+    container.innerHTML = '<p style="font-size:11px;color:var(--es-muted);padding:4px 0;">No matching tabs.</p>';
   } else {
     container.appendChild(frag);
   }
